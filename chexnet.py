@@ -1,8 +1,7 @@
-import math
 import torch
 import torch.nn as nn
-
-
+import torch.optim as optim
+from torch.autograd import Variable
 class Dense_B(nn.Module):
     '''
     A DenseNet-B as described in the paper, the output size is always 4*k
@@ -86,3 +85,50 @@ class DenseNet121(nn.Module):
         x = self.net(x)
         out = nn.Softmax(self.fc(x))
         return out
+
+    def init_param(self):
+        '''
+        initialize parameters
+        according to the paper, parameters should be initialized with parameters
+        from a model pretrained on ImageNet, so this function may be discarded
+        '''
+        for name, param in self.named_parameters():
+            if 'bias' in name:
+                nn.init.constant(param, 0)
+            else:
+                nn.init.xavier_normal(param)
+        return None
+
+    def print_net(self):
+        '''
+        print the names of the modules of the net and the parameter names in each module along
+        with the number of parameters in them
+        '''
+        sum = 0
+        for name, param in self.named_parameters():
+            param_num = 1
+            print('{0}, {1}'.format(name, param.size()))
+            for x in param.size():
+                param_num *= x
+            sum += param_num
+        print('The total number of parameters is {0}'.format(sum))
+        print('---------------------------------------------------')
+        for name, module in self.named_children():
+            print('{0}, {1}'.format(name, module))
+        return None
+
+epoch = 90
+lr = 0.001
+batch_size = 16
+x = torch.randn(3,4)
+y = torch.randn(3,4)
+net = DenseNet121(2,1,0.5,32)
+optimizer = optim.Adam(net.parameters(),lr)
+loss_func = nn.CrossEntropyLoss()
+
+for step in range(epoch):
+    out = net(Variable(x))
+    loss = loss_func(out, Variable(y))
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
